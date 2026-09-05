@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chấm Công</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f0; color: #1a1a1a; min-height: 100vh; padding: 1.5rem; }
+.container { max-width: 720px; margin: 0 auto; }
+h1 { font-size: 22px; font-weight: 600; margin-bottom: 1.5rem; }
+.tabs { display: flex; gap: 4px; margin-bottom: 1.5rem; background: #e5e5e0; border-radius: 10px; padding: 4px; }
+.tab { flex: 1; padding: 8px; border: none; border-radius: 7px; background: transparent; cursor: pointer; font-size: 13px; font-weight: 500; color: #666; }
+.tab.active { background: white; color: #1a1a1a; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+.card { background: white; border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; border: 0.5px solid #e0e0e0; }
+.card h2 { font-size: 15px; font-weight: 500; margin-bottom: 1rem; color: #666; }
+.checkin-area { text-align: center; padding: 1rem 0; }
+.clock { font-size: 36px; font-weight: 300; letter-spacing: 2px; margin-bottom: 6px; }
+.date-display { font-size: 13px; color: #999; margin-bottom: 1.5rem; }
+.btn-row { display: flex; gap: 10px; justify-content: center; }
+.btn-checkin { padding: 12px 32px; border: none; border-radius: 10px; background: #16a34a; color: white; font-size: 15px; font-weight: 500; cursor: pointer; }
+.btn-checkout { padding: 12px 32px; border: none; border-radius: 10px; background: #dc2626; color: white; font-size: 15px; font-weight: 500; cursor: pointer; }
+.btn-checkin:disabled, .btn-checkout:disabled { opacity: 0.4; cursor: not-allowed; }
+.status-box { margin-top: 1rem; padding: 10px 14px; border-radius: 8px; font-size: 13px; text-align: center; }
+.status-box.working { background: #dcfce7; color: #16a34a; }
+.status-box.done { background: #f0f9ff; color: #0369a1; }
+.shift-select { display: flex; gap: 8px; justify-content: center; margin-bottom: 1rem; flex-wrap: wrap; }
+.shift-btn { padding: 6px 16px; border: 1.5px solid #ccc; border-radius: 99px; background: white; cursor: pointer; font-size: 13px; }
+.shift-btn.active { border-color: #1a56db; background: #e8f0fe; color: #1a56db; font-weight: 500; }
+.stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 1rem; }
+.stat-box { background: #f8f8f5; border-radius: 8px; padding: 12px; text-align: center; }
+.stat-num { font-size: 22px; font-weight: 600; color: #1a56db; }
+.stat-label { font-size: 11px; color: #999; margin-top: 2px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; padding: 8px 10px; border-bottom: 1.5px solid #e0e0e0; color: #666; font-weight: 500; }
+td { padding: 8px 10px; border-bottom: 0.5px solid #f0f0f0; }
+tr:last-child td { border-bottom: none; }
+.badge-shift { display: inline-flex; font-size: 11px; padding: 2px 8px; border-radius: 99px; font-weight: 500; }
+.badge-day { background: #fef9c3; color: #854d0e; }
+.badge-evening { background: #e0f2fe; color: #0369a1; }
+.badge-night { background: #ede9fe; color: #6d28d9; }
+.export-btn { width: 100%; padding: 10px; border: 0.5px solid #1a56db; border-radius: 8px; background: #1a56db; color: white; font-size: 14px; cursor: pointer; margin-top: 0.5rem; }
+.del-btn { background: none; border: none; cursor: pointer; color: #ccc; font-size: 14px; }
+.del-btn:hover { color: #dc2626; }
+.section { display: none; }
+.section.active { display: block; }
+.week-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+.week-nav button { padding: 4px 12px; border: 0.5px solid #ccc; border-radius: 6px; background: white; cursor: pointer; font-size: 13px; }
+.week-nav span { font-size: 14px; font-weight: 500; }
+.month-select { display: flex; gap: 8px; align-items: center; margin-bottom: 1rem; }
+.month-select select { font-size: 13px; padding: 6px 10px; border: 0.5px solid #ccc; border-radius: 8px; background: white; }
+.copy-btn { padding: 6px 16px; border: 0.5px solid #ccc; border-radius: 6px; background: white; cursor: pointer; font-size: 12px; margin-top: 8px; }
+.copy-btn.copied { background: #dcfce7; color: #16a34a; }
+pre.export-text { background: #f8f8f5; border-radius: 8px; padding: 12px; font-size: 12px; line-height: 1.6; white-space: pre-wrap; font-family: monospace; margin-top: 10px; max-height: 300px; overflow-y: auto; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🕐 Chấm Công</h1>
+
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('checkin')">Check in/out</button>
+    <button class="tab" onclick="showTab('week')">Tuần này</button>
+    <button class="tab" onclick="showTab('month')">Tháng</button>
+    <button class="tab" onclick="showTab('report')">Báo cáo</button>
+  </div>
+
+  <!-- CHECK IN/OUT -->
+  <div class="section active" id="tab-checkin">
+    <div class="card">
+      <div class="checkin-area">
+        <div class="clock" id="clock">00:00:00</div>
+        <div class="date-display" id="date-display"></div>
+
+        <div class="shift-select">
+          <button class="shift-btn active" onclick="selectShift('day', this)">☀️ Ca ngày</button>
+          <button class="shift-btn" onclick="selectShift('evening', this)">🌆 Ca tối</button>
+          <button class="shift-btn" onclick="selectShift('night', this)">🌙 Ca đêm</button>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn-checkin" id="btn-in" onclick="checkIn()">✅ Check In</button>
+          <button class="btn-checkout" id="btn-out" onclick="checkOut()" disabled>🚪 Check Out</button>
+        </div>
+
+        <div id="status-box" style="display:none" class="status-box"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Hôm nay</h2>
+      <div id="today-list"><p style="font-size:13px;color:#999;">Chưa có lượt chấm công nào.</p></div>
+    </div>
+  </div>
+
+  <!-- TUẦN -->
+  <div class="section" id="tab-week">
+    <div class="card">
+      <div class="week-nav">
+        <button onclick="changeWeek(-1)">← Tuần trước</button>
+        <span id="week-label"></span>
+        <button onclick="changeWeek(1)">Tuần sau →</button>
+      </div>
+      <div class="stat-grid" id="week-stats"></div>
+      <table>
+        <thead><tr><th>Ngày</th><th>Ca</th><th>Vào</th><th>Ra</th><th>Số giờ</th></tr></thead>
+        <tbody id="week-table"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- THÁNG -->
+  <div class="section" id="tab-month">
+    <div class="card">
+      <div class="month-select">
+        <select id="month-sel" onchange="renderMonth()"></select>
+        <select id="year-sel" onchange="renderMonth()"></select>
+      </div>
+      <div class="stat-grid" id="month-stats"></div>
+      <table>
+        <thead><tr><th>Ngày</th><th>Ca</th><th>Vào</th><th>Ra</th><th>Số giờ</th><th></th></tr></thead>
+        <tbody id="month-table"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- BÁO CÁO -->
+  <div class="section" id="tab-report">
+    <div class="card">
+      <h2>Xuất báo cáo tháng</h2>
+      <div class="month-select">
+        <select id="report-month-sel"></select>
+        <select id="report-year-sel"></select>
+      </div>
+      <button class="export-btn" onclick="generateReport()">📄 Tạo báo cáo</button>
+      <div id="report-output" style="display:none">
+        <pre class="export-text" id="report-text"></pre>
+        <button class="copy-btn" id="report-copy-btn" onclick="copyReport()">Copy</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'attendance_records';
+let records = [];
+let currentShift = 'day';
+let activeSession = null;
+let weekOffset = 0;
+
+const shiftLabel = { day: '☀️ Ca ngày', evening: '🌆 Ca tối', night: '🌙 Ca đêm' };
+const shiftClass = { day: 'badge-day', evening: 'badge-evening', night: 'badge-night' };
+
+function load() {
+  try {
+    const s = localStorage.getItem(STORAGE_KEY);
+    if (s) { const d = JSON.parse(s); records = d.records||[]; activeSession = d.activeSession||null; }
+  } catch(e) {}
+}
+
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ records, activeSession }));
+}
+
+function fmt(date) {
+  return date.toLocaleTimeString('vi-VN', { hour:'2-digit', minute:'2-digit' });
+}
+
+function fmtDate(dateStr) {
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('vi-VN', { weekday:'short', day:'2-digit', month:'2-digit' });
+}
+
+function diffHours(inTime, outTime) {
+  return ((new Date(outTime) - new Date(inTime)) / 3600000).toFixed(1);
+}
+
+function selectShift(shift, btn) {
+  currentShift = shift;
+  document.querySelectorAll('.shift-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function checkIn() {
+  const now = new Date();
+  activeSession = { shift: currentShift, inTime: now.toISOString(), date: now.toLocaleDateString('vi-VN') };
+  save();
+  document.getElementById('btn-in').disabled = true;
+  document.getElementById('btn-out').disabled = false;
+  renderStatusBox();
+  renderToday();
+}
+
+function checkOut() {
+  if (!activeSession) return;
+  const now = new Date();
+  records.push({ ...activeSession, outTime: now.toISOString(), hours: diffHours(activeSession.inTime, now.toISOString()) });
+  activeSession = null;
+  save();
+  document.getElementById('btn-in').disabled = false;
+  document.getElementById('btn-out').disabled = true;
+  document.getElementById('status-box').style.display = 'none';
+  renderToday();
+  renderWeek();
+  renderMonth();
+}
+
+function renderStatusBox() {
+  if (!activeSession) return;
+  const box = document.getElementById('status-box');
+  box.style.display = 'block';
+  box.className = 'status-box working';
+  box.textContent = `Đang làm việc từ ${fmt(new Date(activeSession.inTime))} — ${shiftLabel[activeSession.shift]}`;
+}
+
+function renderToday() {
+  const today = new Date().toLocaleDateString('vi-VN');
+  const todayRecs = records.filter(r => r.date === today);
+  const el = document.getElementById('today-list');
+  if (todayRecs.length === 0 && !activeSession) {
+    el.innerHTML = '<p style="font-size:13px;color:#999;">Chưa có lượt chấm công nào.</p>';
+    return;
+  }
+  el.innerHTML = `<table><thead><tr><th>Ca</th><th>Vào</th><th>Ra</th><th>Giờ</th></tr></thead><tbody>
+    ${activeSession ? `<tr><td><span class="badge-shift ${shiftClass[activeSession.shift]}">${shiftLabel[activeSession.shift]}</span></td><td>${fmt(new Date(activeSession.inTime))}</td><td style="color:#999;">Đang làm...</td><td>—</td></tr>` : ''}
+    ${todayRecs.map(r => `<tr><td><span class="badge-shift ${shiftClass[r.shift]}">${shiftLabel[r.shift]}</span></td><td>${fmt(new Date(r.inTime))}</td><td>${fmt(new Date(r.outTime))}</td><td>${r.hours}h</td></tr>`).join('')}
+  </tbody></table>`;
+}
+
+function getWeekDates(offset) {
+  const now = new Date();
+  const day = now.getDay() || 7;
+  const mon = new Date(now);
+  mon.setDate(now.getDate() - day + 1 + offset * 7);
+  const dates = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(mon);
+    d.setDate(mon.getDate() + i);
+    dates.push(d);
+  }
+  return dates;
+}
+
+function changeWeek(dir) { weekOffset += dir; renderWeek(); }
+
+function renderWeek() {
+  const dates = getWeekDates(weekOffset);
+  const label = `${dates[0].toLocaleDateString('vi-VN', {day:'2-digit',month:'2-digit'})} – ${dates[6].toLocaleDateString('vi-VN', {day:'2-digit',month:'2-digit',year:'numeric'})}`;
+  document.getElementById('week-label').textContent = label;
+
+  const weekRecs = records.filter(r => {
+    const d = new Date(r.inTime);
+    return d >= dates[0] && d <= new Date(dates[6].getTime() + 86400000);
+  });
+
+  const totalH = weekRecs.reduce((s, r) => s + parseFloat(r.hours), 0);
+  const days = new Set(weekRecs.map(r => r.date)).size;
+  document.getElementById('week-stats').innerHTML = `
+    <div class="stat-box"><div class="stat-num">${totalH.toFixed(1)}h</div><div class="stat-label">Tổng giờ</div></div>
+    <div class="stat-box"><div class="stat-num">${days}</div><div class="stat-label">Ngày làm</div></div>
+    <div class="stat-box"><div class="stat-num">${days > 0 ? (totalH/days).toFixed(1) : 0}h</div><div class="stat-label">TB/ngày</div></div>
+  `;
+
+  document.getElementById('week-table').innerHTML = weekRecs.length === 0
+    ? '<tr><td colspan="5" style="color:#999;text-align:center;padding:16px;">Không có dữ liệu</td></tr>'
+    : weekRecs.map(r => `<tr>
+        <td>${fmtDate(r.inTime)}</td>
+        <td><span class="badge-shift ${shiftClass[r.shift]}">${shiftLabel[r.shift]}</span></td>
+        <td>${fmt(new Date(r.inTime))}</td>
+        <td>${fmt(new Date(r.outTime))}</td>
+        <td>${r.hours}h</td>
+      </tr>`).join('');
+}
+
+function initMonthSelects() {
+  const now = new Date();
+  const months = ['Tháng 1','Tháng 2','Tháng 3','Tháng 4','Tháng 5','Tháng 6','Tháng 7','Tháng 8','Tháng 9','Tháng 10','Tháng 11','Tháng 12'];
+  ['month-sel','report-month-sel'].forEach(id => {
+    const sel = document.getElementById(id);
+    sel.innerHTML = months.map((m,i) => `<option value="${i}" ${i===now.getMonth()?'selected':''}>${m}</option>`).join('');
+  });
+  ['year-sel','report-year-sel'].forEach(id => {
+    const sel = document.getElementById(id);
+    for (let y = now.getFullYear()-1; y <= now.getFullYear()+1; y++) {
+      sel.innerHTML += `<option value="${y}" ${y===now.getFullYear()?'selected':''}>${y}</option>`;
+    }
+  });
+}
+
+function getMonthRecs(month, year) {
+  return records.filter(r => {
+    const d = new Date(r.inTime);
+    return d.getMonth() === month && d.getFullYear() === year;
+  });
+}
+
+function renderMonth() {
+  const month = parseInt(document.getElementById('month-sel').value);
+  const year = parseInt(document.getElementById('year-sel').value);
+  const recs = getMonthRecs(month, year);
+
+  const totalH = recs.reduce((s, r) => s + parseFloat(r.hours), 0);
+  const days = new Set(recs.map(r => r.date)).size;
+  document.getElementById('month-stats').innerHTML = `
+    <div class="stat-box"><div class="stat-num">${totalH.toFixed(1)}h</div><div class="stat-label">Tổng giờ</div></div>
+    <div class="stat-box"><div class="stat-num">${days}</div><div class="stat-label">Ngày làm</div></div>
+    <div class="stat-box"><div class="stat-num">${days > 0 ? (totalH/days).toFixed(1) : 0}h</div><div class="stat-label">TB/ngày</div></div>
+  `;
+
+  document.getElementById('month-table').innerHTML = recs.length === 0
+    ? '<tr><td colspan="6" style="color:#999;text-align:center;padding:16px;">Không có dữ liệu</td></tr>'
+    : recs.map((r, i) => `<tr>
+        <td>${fmtDate(r.inTime)}</td>
+        <td><span class="badge-shift ${shiftClass[r.shift]}">${shiftLabel[r.shift]}</span></td>
+        <td>${fmt(new Date(r.inTime))}</td>
+        <td>${fmt(new Date(r.outTime))}</td>
+        <td>${r.hours}h</td>
+        <td><button class="del-btn" onclick="deleteRecord(${i})">🗑️</button></td>
+      </tr>`).join('');
+}
+
+function deleteRecord(i) {
+  const month = parseInt(document.getElementById('month-sel').value);
+  const year = parseInt(document.getElementById('year-sel').value);
+  const recs = getMonthRecs(month, year);
+  const target = recs[i];
+  records = records.filter(r => r !== target);
+  save(); renderMonth();
+}
+
+function generateReport() {
+  const month = parseInt(document.getElementById('report-month-sel').value);
+  const year = parseInt(document.getElementById('report-year-sel').value);
+  const recs = getMonthRecs(month, year);
+  const months = ['Tháng 1','Tháng 2','Tháng 3','Tháng 4','Tháng 5','Tháng 6','Tháng 7','Tháng 8','Tháng 9','Tháng 10','Tháng 11','Tháng 12'];
+
+  if (recs.length === 0) {
+    document.getElementById('report-output').style.display = 'block';
+    document.getElementById('report-text').textContent = 'Không có dữ liệu tháng này.';
+    return;
+  }
+
+  const totalH = recs.reduce((s, r) => s + parseFloat(r.hours), 0);
+  const days = new Set(recs.map(r => r.date)).size;
+  const byShift = { day: 0, evening: 0, night: 0 };
+  recs.forEach(r => byShift[r.shift] = (byShift[r.shift]||0) + parseFloat(r.hours));
+
+  let text = `BÁO CÁO CHẤM CÔNG\n${months[month]} ${year}\n${'='.repeat(40)}\n\n`;
+  text += `TỔNG KẾT:\n`;
+  text += `• Số ngày làm: ${days} ngày\n`;
+  text += `• Tổng giờ: ${totalH.toFixed(1)}h\n`;
+  text += `• Trung bình: ${(totalH/days).toFixed(1)}h/ngày\n`;
+  text += `• Ca ngày: ${byShift.day.toFixed(1)}h\n`;
+  text += `• Ca tối: ${byShift.evening.toFixed(1)}h\n`;
+  text += `• Ca đêm: ${byShift.night.toFixed(1)}h\n\n`;
+  text += `CHI TIẾT:\n${'─'.repeat(40)}\n`;
+
+  recs.forEach(r => {
+    const shift = r.shift === 'day' ? 'Ngày' : r.shift === 'evening' ? 'Tối' : 'Đêm';
+    text += `${fmtDate(r.inTime).padEnd(16)} ${shift.padEnd(6)} ${fmt(new Date(r.inTime))} → ${fmt(new Date(r.outTime))}  (${r.hours}h)\n`;
+  });
+
+  document.getElementById('report-output').style.display = 'block';
+  document.getElementById('report-text').textContent = text;
+  document.getElementById('report-copy-btn').textContent = 'Copy';
+  document.getElementById('report-copy-btn').classList.remove('copied');
+}
+
+function copyReport() {
+  navigator.clipboard.writeText(document.getElementById('report-text').textContent).catch(()=>{});
+  const btn = document.getElementById('report-copy-btn');
+  btn.textContent = '✓ Đã copy!';
+  btn.classList.add('copied');
+}
+
+function showTab(tab) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  event.target.classList.add('active');
+  if (tab === 'week') renderWeek();
+  if (tab === 'month') renderMonth();
+}
+
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent = now.toLocaleTimeString('vi-VN');
+  document.getElementById('date-display').textContent = now.toLocaleDateString('vi-VN', { weekday:'long', day:'2-digit', month:'2-digit', year:'numeric' });
+}
+
+load();
+initMonthSelects();
+renderToday();
+renderWeek();
+if (activeSession) {
+  document.getElementById('btn-in').disabled = true;
+  document.getElementById('btn-out').disabled = false;
+  renderStatusBox();
+}
+setInterval(updateClock, 1000);
+updateClock();
+</script>
+</body>
+</html>
